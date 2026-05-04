@@ -8,6 +8,14 @@ import Cart from "@/models/Cart";
 import User from "@/models/User";
 import { sendEmail, COMPANY_EMAIL } from "@/lib/email";
 import { orderConfirmationTemplate, newOrderNotificationTemplate } from "@/lib/email-templates";
+import {
+  validateName,
+  validatePhoneNumber,
+  validateAddress,
+  validatePincode,
+  validateObjectId,
+  sanitizeString,
+} from "@/lib/validation";
 
 // GET user's orders
 export async function GET() {
@@ -72,6 +80,47 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Validate shipping address fields
+    const nameValidation = validateName(shippingAddress.name);
+    if (!nameValidation.valid) {
+      return NextResponse.json({ error: nameValidation.error }, { status: 400 });
+    }
+
+    const phoneValidation = validatePhoneNumber(shippingAddress.phone);
+    if (!phoneValidation.valid) {
+      return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
+    }
+
+    const addressValidation = validateAddress(shippingAddress.address);
+    if (!addressValidation.valid) {
+      return NextResponse.json({ error: addressValidation.error }, { status: 400 });
+    }
+
+    const pincodeValidation = validatePincode(shippingAddress.pincode);
+    if (!pincodeValidation.valid) {
+      return NextResponse.json({ error: pincodeValidation.error }, { status: 400 });
+    }
+
+    // Validate items
+    for (const item of items) {
+      if (!validateObjectId(item.product)) {
+        return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+      }
+      if (!item.quantity || item.quantity < 1 || !Number.isInteger(item.quantity) || item.quantity > 1000) {
+        return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
+      }
+    }
+
+    // Sanitize address inputs
+    const sanitizedShippingAddress = {
+      name: nameValidation.normalized,
+      phone: phoneValidation.normalized,
+      address: addressValidation.normalized,
+      city: sanitizeString(shippingAddress.city, 100),
+      state: sanitizeString(shippingAddress.state, 50),
+      pincode: pincodeValidation.normalized,
+    };
 
     await dbConnect();
 
@@ -147,8 +196,8 @@ export async function POST(request: NextRequest) {
     const order = await Order.create({
       user: session.user.id,
       items: orderItems,
-      shippingAddress,
-      billingAddress: billingAddress || shippingAddress,
+      shippingAddress: sanitizedShippingAddress,
+      billingAddress: billingAddress || sanitizedShippingAddress,
       subtotal,
       shippingCost,
       tax: 0,
