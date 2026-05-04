@@ -142,17 +142,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Determine customer state code
+    // 5. Determine customer state code and B2B status
+    const isB2B = user.gstNumber && user.isGstVerified;
     let customerStateCode: string;
     
-    if (user.gstNumber && user.isGstVerified) {
-      const gstStateCode = extractStateCodeFromGSTIN(user.gstNumber);
+    if (isB2B) {
+      const gstStateCode = extractStateCodeFromGSTIN(user.gstNumber as string);
       customerStateCode = gstStateCode || getStateCodeFromName(sanitizedState);
     } else {
       customerStateCode = getStateCodeFromName(sanitizedState);
     }
 
-    // 6. Fetch products and calculate subtotal
+    // 6. Fetch products and calculate subtotal with B2B/B2C pricing
     const productIds = items.map(item => item.productId);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const products = await Product.find({ _id: { $in: productIds } }).lean() as any[];
@@ -168,7 +169,9 @@ export async function POST(request: NextRequest) {
     for (const item of items) {
       const product = products.find(p => p._id.toString() === item.productId);
       if (product) {
-        subtotal += product.price * item.quantity;
+        // Use correct price based on user type
+        const price = isB2B ? product.priceB2B : product.priceB2C;
+        subtotal += price * item.quantity;
       }
     }
 
@@ -193,8 +196,10 @@ export async function POST(request: NextRequest) {
           totalTax: gstBreakdown.totalTax,
           customerState: gstBreakdown.customerStateName,
           isIntraState: gstBreakdown.isIntraState,
+          customerGstin: user.gstNumber || null,
         },
         total: gstBreakdown.grandTotal,
+        isB2B: !!isB2B,
       },
     });
   } catch (error) {
