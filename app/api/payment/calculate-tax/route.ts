@@ -10,6 +10,7 @@ import {
   BUSINESS_STATE_CODE,
   STATE_CODES,
 } from "@/lib/gst";
+import { validateObjectId, validateQuantity, sanitizeString } from "@/lib/validation";
 
 interface CartItem {
   productId: string;
@@ -102,6 +103,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate and sanitize items
+    for (const item of items) {
+      if (!validateObjectId(item.productId)) {
+        return NextResponse.json(
+          { error: "Invalid product ID" },
+          { status: 400 }
+        );
+      }
+      const qtyValidation = validateQuantity(item.quantity);
+      if (!qtyValidation.valid) {
+        return NextResponse.json(
+          { error: qtyValidation.error },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Sanitize state input
+    const sanitizedState = sanitizeString(shippingAddress.state, 50);
+    if (!sanitizedState) {
+      return NextResponse.json(
+        { error: "Invalid state" },
+        { status: 400 }
+      );
+    }
+
     // 3. Connect to database
     await dbConnect();
 
@@ -120,9 +147,9 @@ export async function POST(request: NextRequest) {
     
     if (user.gstNumber && user.isGstVerified) {
       const gstStateCode = extractStateCodeFromGSTIN(user.gstNumber);
-      customerStateCode = gstStateCode || getStateCodeFromName(shippingAddress.state);
+      customerStateCode = gstStateCode || getStateCodeFromName(sanitizedState);
     } else {
-      customerStateCode = getStateCodeFromName(shippingAddress.state);
+      customerStateCode = getStateCodeFromName(sanitizedState);
     }
 
     // 6. Fetch products and calculate subtotal

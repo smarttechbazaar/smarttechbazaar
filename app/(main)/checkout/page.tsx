@@ -396,19 +396,20 @@ export default function CheckoutPage() {
     setOrderError(null);
 
     try {
+      // Send minimal data - server calculates prices securely
       const orderData = {
         items: items.map((item) => ({
           product: item.product._id,
-          name: item.product.name,
-          price: item.price,
           quantity: item.quantity,
-          total: item.total,
-          image: item.product.images?.[0],
         })),
-        shippingAddress: selectedAddress,
-        subtotal: total,
-        shippingCost,
-        total: grandTotal,
+        shippingAddress: {
+          name: selectedAddress.name,
+          phone: selectedAddress.phone,
+          address: selectedAddress.address,
+          city: selectedAddress.city,
+          state: selectedAddress.state,
+          pincode: selectedAddress.pincode,
+        },
         paymentMethod: "cod",
       };
 
@@ -421,9 +422,9 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Clear cart and redirect to success
+        // Clear cart and redirect to success with order number
         await fetch("/api/cart", { method: "DELETE" });
-        router.push(`/order-success?orderId=${data.order._id}`);
+        router.push(`/order-success?orderId=${data.order._id}&orderNumber=${data.order.orderNumber}`);
       } else {
         setOrderError(data.error || "Failed to place order");
       }

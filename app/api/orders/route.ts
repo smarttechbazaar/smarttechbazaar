@@ -47,9 +47,6 @@ export async function POST(request: NextRequest) {
       items,
       shippingAddress,
       billingAddress,
-      subtotal,
-      shippingCost,
-      total,
       paymentMethod,
       notes,
     } = await request.json();
@@ -68,49 +65,85 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dbConnect();
-
-    // Verify stock availability and update stock
-    for (const item of items) {
-      const product = await Product.findById(item.product);
-      if (!product) {
-        return NextResponse.json(
-          { error: `Product not found: ${item.name}` },
-          { status: 400 }
-        );
-      }
-      if (product.stock < item.quantity) {
-        return NextResponse.json(
-          { error: `Insufficient stock for ${item.name}` },
-          { status: 400 }
-        );
-      }
+    // Validate payment method
+    if (!paymentMethod || !["cod", "razorpay", "bank_transfer"].includes(paymentMethod)) {
+      return NextResponse.json(
+        { error: "Invalid payment method" },
+        { status: 400 }
+      );
     }
 
-    // Create order items with SKU
-    const orderItems = await Promise.all(
-      items.map(async (item: {
-        product: string;
-        name: string;
-        price: number;
-        quantity: number;
-        total: number;
-        image?: string;
-      }) => {
-        const product = await Product.findById(item.product);
-        return {
-          product: item.product,
-          name: item.name,
-          sku: product?.sku || "N/A",
-          image: item.image,
-          price: item.price,
-          quantity: item.quantity,
-          total: item.total,
-        };
-      })
-    );
+    await dbConnect();
 
-    // Create order
+    // Get user for B2B pricing check
+    const user = await User.findById(session.user.id);
+    const isB2B = user?.isGstVerified === true;
+
+    // SECURITY: Fetch products and calculate prices server-side
+    // Never trust client-provided prices
+    const productIds = items.map((item: { product: string }) => item.product);
+    const products = await Product.find({ _id: { $in: productIds } });
+
+    if (products.length !== items.length) {
+      return NextResponse.json(
+        { error: "One or more products not found" },
+        { status: 400 }
+      );
+    }
+
+    // Build order items with SERVER-SIDE prices
+    const orderItems = [];
+    let subtotal = 0;
+
+    for (const item of items) {
+      const product = products.find(p => p._id.toString() === item.product);
+      
+      if (!product) {
+        return NextResponse.json(
+          { error: `Product not found: ${item.product}` },
+          { status: 400 }
+        );
+      }
+
+      // Validate quantity
+      if (!item.quantity || item.quantity < 1 || !Number.isInteger(item.quantity)) {
+        return NextResponse.json(
+          { error: `Invalid quantity for ${product.name}` },
+          { status: 400 }
+        );
+      }
+
+      // Check stock availability
+      if (product.stock < item.quantity) {
+        return NextResponse.json(
+          { error: `Insufficient stock for ${product.name}` },
+          { status: 400 }
+        );
+      }
+
+      // Use SERVER-SIDE price based on user type (B2B vs B2C)
+      const price = isB2B ? product.priceB2B : product.priceB2C;
+      const itemTotal = price * item.quantity;
+      subtotal += itemTotal;
+
+      orderItems.push({
+        product: product._id,
+        name: product.name,
+        sku: product.sku || "N/A",
+        image: product.images?.[0] || "",
+        price: price,
+        quantity: item.quantity,
+        total: itemTotal,
+      });
+    }
+
+    // Calculate shipping server-side
+    const shippingCost = subtotal >= 5000 ? 0 : 99;
+
+    // Calculate total (for COD, we skip GST for simplicity or add it here)
+    const total = subtotal + shippingCost;
+
+    // Create order with SERVER-CALCULATED values
     const order = await Order.create({
       user: session.user.id,
       items: orderItems,
