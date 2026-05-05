@@ -11,6 +11,9 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { OfflineAlert } from "@/components/ui/offline-alert";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { isRunningInMobileApp, getMobilePlatform, vibrate } from "@/lib/mobile-utils";
 import {
   ChevronRight,
   Loader2,
@@ -21,6 +24,7 @@ import {
   Plus,
   AlertCircle,
   CheckCircle2,
+  WifiOff,
 } from "lucide-react";
 
 // Razorpay types
@@ -173,6 +177,16 @@ export default function CheckoutPage() {
   // Tax breakdown state
   const [taxBreakdown, setTaxBreakdown] = useState<TaxBreakdown | null>(null);
   const [isCalculatingTax, setIsCalculatingTax] = useState(false);
+  
+  // Mobile app detection
+  const { isOnline } = useNetworkStatus();
+  const [isMobileApp, setIsMobileApp] = useState(false);
+  const [mobilePlatform, setMobilePlatform] = useState<"ios" | "android" | "web">("web");
+  
+  useEffect(() => {
+    setIsMobileApp(isRunningInMobileApp());
+    setMobilePlatform(getMobilePlatform());
+  }, []);
 
   const [newAddress, setNewAddress] = useState({
     name: "",
@@ -306,6 +320,14 @@ export default function CheckoutPage() {
   const initiateRazorpayPayment = async (retryOrderId?: string) => {
     if (!selectedAddress) {
       setOrderError("Please add a delivery address");
+      vibrate(100); // Haptic feedback on error
+      return;
+    }
+
+    // Check network connectivity (essential for mobile apps)
+    if (!isOnline) {
+      setOrderError("You're offline. Please check your internet connection and try again.");
+      vibrate([50, 100, 50]); // Haptic pattern for error
       return;
     }
 
@@ -518,6 +540,14 @@ export default function CheckoutPage() {
   const handlePlaceCODOrder = async () => {
     if (!selectedAddress) {
       setOrderError("Please add a delivery address");
+      vibrate(100);
+      return;
+    }
+
+    // Check network connectivity
+    if (!isOnline) {
+      setOrderError("You're offline. Please check your internet connection and try again.");
+      vibrate([50, 100, 50]);
       return;
     }
 
@@ -598,6 +628,9 @@ export default function CheckoutPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Offline Alert for Mobile Apps */}
+      <OfflineAlert onRetry={() => window.location.reload()} />
+      
       {/* Load Razorpay Script */}
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
@@ -734,6 +767,43 @@ export default function CheckoutPage() {
                     >
                       <Plus className="h-4 w-4" />
                       Use a different address
+                    </button>
+                  </div>
+                )}
+
+                {/* Display selected new address (when no saved addresses or user entered new address) */}
+                {selectedAddress && selectedAddress._id === "new" && !showAddressForm && (
+                  <div className="space-y-3 mb-4">
+                    <div className="rounded-lg border border-primary bg-primary/5 p-3 md:p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                            <p className="text-sm font-medium">{selectedAddress.name}</p>
+                          </div>
+                          <p className="body-sm text-muted-foreground mt-1">{selectedAddress.phone}</p>
+                          <p className="body-sm mt-0.5 break-words text-muted-foreground">
+                            {selectedAddress.address}, {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowAddressForm(true);
+                        setNewAddress({
+                          name: selectedAddress.name,
+                          phone: selectedAddress.phone,
+                          address: selectedAddress.address,
+                          city: selectedAddress.city,
+                          state: selectedAddress.state,
+                          pincode: selectedAddress.pincode,
+                        });
+                      }}
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      Edit or change address
                     </button>
                   </div>
                 )}
