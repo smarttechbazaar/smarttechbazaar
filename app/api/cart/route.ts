@@ -36,7 +36,7 @@ export async function GET() {
     const cart = await Cart.findOne({ user: session.user.id }).populate({
       path: "items.product",
       select: "name slug images priceB2C priceB2B mrp stock brand",
-    });
+    }).lean();
 
     if (!cart) {
       return withNoCacheHeaders(
@@ -45,7 +45,7 @@ export async function GET() {
     }
 
     // Get user's GST verification status for pricing
-    const user = await User.findById(session.user.id);
+    const user = await User.findById(session.user.id).lean();
     const isB2B = user?.isGstVerified === true;
     
     type PopulatedCartItem = {
@@ -59,22 +59,62 @@ export async function GET() {
         mrp: number;
         stock: number;
         brand?: string;
-      };
+      } | null;
       quantity: number;
       addedAt: Date;
     };
 
-    const items = (cart.items as unknown as PopulatedCartItem[]).map((item) => {
-      const price = isB2B ? item.product.priceB2B : item.product.priceB2C;
+    // Filter out items where product was deleted (null) and map to response format
+    const validItems = (cart.items as unknown as PopulatedCartItem[]).filter(
+      (item) => item.product !== null
+    );
+
+    // If there were invalid items, clean up the cart using atomic update
+    if (validItems.length !== cart.items.length) {
+      const validProductIds = validItems.map(item => item.product!._id);
+      await Cart.findOneAndUpdate(
+        { user: session.user.id },
+        { $pull: { items: { product: { $nin: validProductIds } } } }
+      );
+    }
+
+    const items = validItems.map((item) => {
+      const product = item.product!; // We've filtered out nulls above
+      
+      // Ensure prices are valid numbers, with MRP fallbacks (consistent with homepage logic)
+      const rawMrp = Number(product.mrp) || 0;
+      const rawPriceB2C = Number(product.priceB2C) || 0;
+      const rawPriceB2B = Number(product.priceB2B) || 0;
+      
+      // Apply fallbacks: if price is 0, use MRP as fallback
+      const mrp = rawMrp;
+      const priceB2C = rawPriceB2C > 0 ? rawPriceB2C : rawMrp;
+      const priceB2B = rawPriceB2B > 0 ? rawPriceB2B : (rawPriceB2C > 0 ? rawPriceB2C : rawMrp);
+      
+      const price = isB2B ? priceB2B : priceB2C;
+      const quantity = Number(item.quantity) || 1;
+      // Ensure _id is a string (lean() returns ObjectId objects)
+      const productId = typeof product._id === 'string' ? product._id : product._id.toString();
+      
       return {
-        product: item.product,
-        quantity: item.quantity,
+        product: {
+          _id: productId,
+          name: product.name,
+          slug: product.slug,
+          images: product.images,
+          brand: product.brand,
+          stock: Number(product.stock) || 0,
+          priceB2C,
+          priceB2B,
+          mrp,
+        },
+        quantity,
         price,
-        total: price * item.quantity,
+        total: price * quantity,
       };
     });
 
-    const total = items.reduce((sum: number, item: { total: number }) => sum + item.total, 0);
+    const total = items.reduce((sum: number, item: { total: number }) => sum + (item.total || 0), 0);
 
     return withNoCacheHeaders(
       NextResponse.json({ items, total, isB2B })
@@ -256,12 +296,13 @@ export async function PUT(request: NextRequest) {
     }
 
     if (quantity <= 0) {
-      // Remove item from cart
-      cart.items = cart.items.filter(
-        (item: { product: { toString: () => string } }) => item.product.toString() !== productId
+      // Remove item from cart using atomic $pull
+      await Cart.findOneAndUpdate(
+        { user: session.user.id },
+        { $pull: { items: { product: productId } } }
       );
     } else {
-      // Update quantity
+      // Update quantity - check stock first
       const product = await Product.findById(productId);
       if (!product || product.stock < quantity) {
         return withNoCacheHeaders(
@@ -272,18 +313,15 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      const item = cart.items.find(
-        (item: { product: { toString: () => string } }) => item.product.toString() === productId
+      // Use atomic update with $set on specific array element
+      await Cart.findOneAndUpdate(
+        { user: session.user.id, "items.product": productId },
+        { $set: { "items.$.quantity": quantity } }
       );
-      if (item) {
-        item.quantity = quantity;
-      }
     }
 
-    await cart.save();
-
     return withNoCacheHeaders(
-      NextResponse.json({ message: "Cart updated", cart })
+      NextResponse.json({ message: "Cart updated" })
     );
   } catch (error) {
     console.error("Error updating cart:", error);
@@ -322,20 +360,20 @@ export async function DELETE(request: NextRequest) {
 
     await dbConnect();
 
-    const cart = await Cart.findOne({ user: session.user.id });
-
-    if (!cart) {
-      return withNoCacheHeaders(
-        NextResponse.json({ error: "Cart not found" }, { status: 404 })
-      );
-    }
-
     if (productId) {
-      // Remove specific item
-      cart.items = cart.items.filter(
-        (item: { product: { toString: () => string } }) => item.product.toString() !== productId
+      // Remove specific item using atomic $pull operation to avoid version conflicts
+      const result = await Cart.findOneAndUpdate(
+        { user: session.user.id },
+        { $pull: { items: { product: productId } } },
+        { new: true }
       );
-      await cart.save();
+
+      if (!result) {
+        return withNoCacheHeaders(
+          NextResponse.json({ error: "Cart not found" }, { status: 404 })
+        );
+      }
+
       return withNoCacheHeaders(
         NextResponse.json({ message: "Item removed from cart" })
       );
