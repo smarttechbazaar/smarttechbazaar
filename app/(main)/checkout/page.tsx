@@ -180,10 +180,6 @@ export default function CheckoutPage() {
   const [taxBreakdown, setTaxBreakdown] = useState<TaxBreakdown | null>(null);
   const [isCalculatingTax, setIsCalculatingTax] = useState(false);
   
-  
-  // Payment method state
-  const [paymentMethod, setPaymentMethod] = useState<string>("razorpay");
-
   // Mobile app detection
   const { isOnline } = useNetworkStatus();
   const [isMobileApp, setIsMobileApp] = useState(false);
@@ -1022,11 +1018,11 @@ export default function CheckoutPage() {
                   {isPlacingOrder ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      {paymentMethod === "razorpay" ? "Processing..." : "Placing Order..."}
+                      Processing...
                     </>
                   ) : (
                     <>
-                      {paymentMethod === "razorpay" ? "Pay Now" : "Place Order"}
+                      Pay Now
                       <ChevronRight className="h-4 w-4" />
                     </>
                   )}
