@@ -74,7 +74,7 @@ export default function GoogleSignInDebugPage() {
 
   const handleDirectCall = () => {
     // Android Client ID from Google Cloud Console
-    const GOOGLE_ANDROID_CLIENT_ID = "393630939714-kv9uopvubdai15ob74tn0s6ppdd4jip4.apps.googleusercontent.com";
+    const GOOGLE_ANDROID_CLIENT_ID = "393630939714-ccgciu2tmtf7me0souh2vt7a1ctqe1bf.apps.googleusercontent.com";
     
     addLog("Testing with Android Client ID...");
     addLog(`Client ID: ${GOOGLE_ANDROID_CLIENT_ID}`);
@@ -144,7 +144,7 @@ export default function GoogleSignInDebugPage() {
         <div className="mb-4 rounded-lg bg-yellow-50 border border-yellow-200 p-4">
           <h2 className="font-semibold text-yellow-800 mb-2">Median.co Configuration</h2>
           <p className="text-sm text-yellow-700 mb-2">
-            Android Client ID: <code className="bg-yellow-100 px-1 text-xs break-all">393630939714-kv9uopvubdai15ob74tn0s6ppdd4jip4.apps.googleusercontent.com</code>
+            Android Client ID: <code className="bg-yellow-100 px-1 text-xs break-all">393630939714-ccgciu2tmtf7me0souh2vt7a1ctqe1bf.apps.googleusercontent.com</code>
           </p>
           <ol className="text-xs text-yellow-700 list-decimal ml-4 space-y-1">
             <li>Go to <strong>Median.co Dashboard</strong> → Your App → <strong>Native Plugins</strong> → <strong>Social Login</strong></li>

@@ -522,7 +522,7 @@ export interface SocialLoginError {
 // (NOT the Web Client ID - Median native SDK uses the Android client)
 const GOOGLE_ANDROID_CLIENT_ID =
   (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_GOOGLE_ANDROID_CLIENT_ID) ||
-  "393630939714-kv9uopvubdai15ob74tn0s6ppdd4jip4.apps.googleusercontent.com";
+  "393630939714-ccgciu2tmtf7me0souh2vt7a1ctqe1bf.apps.googleusercontent.com";
 
 // Track if a Google Sign-In is currently in progress to prevent duplicate calls
 let googleSignInInProgress = false;

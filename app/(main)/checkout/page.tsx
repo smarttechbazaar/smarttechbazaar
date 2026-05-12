@@ -180,6 +180,10 @@ export default function CheckoutPage() {
   const [taxBreakdown, setTaxBreakdown] = useState<TaxBreakdown | null>(null);
   const [isCalculatingTax, setIsCalculatingTax] = useState(false);
   
+  
+  // Payment method state
+  const [paymentMethod, setPaymentMethod] = useState<string>("razorpay");
+
   // Mobile app detection
   const { isOnline } = useNetworkStatus();
   const [isMobileApp, setIsMobileApp] = useState(false);
