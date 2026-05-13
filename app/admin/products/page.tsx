@@ -217,10 +217,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                       {product.category?.name || "-"}
                     </td>
                     <td className="px-4 py-3 text-right font-medium">
-                      {formatPrice(product.priceB2C)}
+                      {product.priceB2C}
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-blue-600">
-                      {formatPrice(product.priceB2B)}
+                      {product.priceB2B}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span
