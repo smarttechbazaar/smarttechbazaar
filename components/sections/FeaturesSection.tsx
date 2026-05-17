@@ -3,7 +3,6 @@
 import { Truck, Shield, Headphones, RefreshCcw, Package, BadgeCheck } from "lucide-react";
 
 const features = [
-  { icon: Truck,       title: "Free Shipping",  desc: "On orders ₹5000+",  color: "bg-blue-50 text-blue-600" },
   { icon: Shield,      title: "Secure Payment", desc: "100% protected",     color: "bg-green-50 text-green-600" },
   { icon: Headphones,  title: "24/7 Support",   desc: "Always available",   color: "bg-purple-50 text-purple-600" },
   { icon: RefreshCcw,  title: "Easy Returns",   desc: "7-day policy",       color: "bg-amber-50 text-amber-600" },
