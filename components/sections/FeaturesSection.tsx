@@ -34,7 +34,7 @@ export default function FeaturesSection() {
 
         {/* Desktop: Full width grid */}
         <div className="hidden rounded-xl border border-border bg-white md:block">
-          <div className="grid grid-cols-6 divide-x divide-border">
+          <div className="grid grid-cols-5 divide-x divide-border">
             {features.map((feature) => (
               <div
                 key={feature.title}
