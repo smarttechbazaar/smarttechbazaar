@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 // Read lazily — throwing at module level crashes the entire module graph
 // and makes every API route return 500 before executing a single line.
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = "mongodb+srv://admin:pVFlUkFuz3ii80RB@stb.3d0fv9t.mongodb.net/sabkatechbazar" || proccess.env.MONGODB_URI;
 
 interface MongooseCache {
   conn: typeof mongoose | null;
