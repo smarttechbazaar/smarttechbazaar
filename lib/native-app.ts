@@ -517,13 +517,11 @@ export interface SocialLoginError {
   message?: string;
 }
 
-// Web Client ID for Google Sign-In via Median.co Social Login plugin
-// IMPORTANT: For Median.co Social Login, you MUST use the WEB Client ID (not Android)
-// The Android Client ID is only for configuring SHA-1 in Google Cloud Console
-// Median's native SDK validates the token server-side using the Web Client ID
-const GOOGLE_WEB_CLIENT_ID =
-  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID) ||
-  "393630939714-ccgciu2tmtf7me0souh2vt7a1ctqe1bf.apps.googleusercontent.com";
+// NOTE: The Google Web/Server Client ID is intentionally NOT referenced here.
+// For Median.co Social Login, the client ID must be configured in the Median App
+// Studio dashboard (Native Plugins → Social Login → Google). It must never be
+// passed to median.socialLogin.google.login() from JavaScript — doing so causes a
+// duplicate account chooser and sign-in failures on Android.
 
 // Track if a Google Sign-In is currently in progress to prevent duplicate calls
 let googleSignInInProgress = false;
@@ -702,16 +700,21 @@ export function nativeGoogleSignIn(): Promise<GoogleLoginResult | null> {
         reject(new Error("Google Sign-In timed out. Please try again."));
       }, 60000);
 
-      console.log("[Median] Calling median.socialLogin.google.login with Web Client ID:", GOOGLE_WEB_CLIENT_ID);
+      console.log("[Median] Calling median.socialLogin.google.login (callback-only mode)");
       
-      // IMPORTANT: According to Median.co documentation, the callback MUST be passed
-      // as a STRING containing the name of a globally registered window function.
-      // Passing a direct function reference causes "legacy mode" errors.
-      // The function must be accessible as window["functionName"].
-      // Do NOT pass redirectUri here — that would open a second webview causing the
-      // double account chooser issue.
+      // IMPORTANT: Per Median's Social Login docs, google.login() accepts ONLY a
+      // `callback`. The Web/Server Client ID MUST be configured in the Median App
+      // Studio dashboard — NOT passed here.
+      //
+      // Passing `clientId` makes the native Android SDK treat it as a serverClientId
+      // and re-authorize to mint an ID token, which shows the account chooser a
+      // SECOND time and then fails with an "unexpected error". Do not pass it.
+      // Likewise, never pass `redirectUri` together with `callback`.
+      //
+      // The callback is passed as a STRING naming a globally-registered window
+      // function (registered above), which is the most compatible form for the
+      // native bridge.
       median.socialLogin.google.login({
-        clientId: GOOGLE_WEB_CLIENT_ID,
         callback: "handleMedianGoogleCallback",
       });
       
