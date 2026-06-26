@@ -703,19 +703,20 @@ export function nativeGoogleSignIn(): Promise<GoogleLoginResult | null> {
       console.log("[Median] Calling median.socialLogin.google.login (callback-only mode)");
       
       // IMPORTANT: Per Median's Social Login docs, google.login() accepts ONLY a
-      // `callback`. The Web/Server Client ID MUST be configured in the Median App
-      // Studio dashboard — NOT passed here.
+      // `callback`, passed as a DIRECT FUNCTION REFERENCE:
+      //   median.socialLogin.google.login({ 'callback': googleLoginCallback });
       //
-      // Passing `clientId` makes the native Android SDK treat it as a serverClientId
-      // and re-authorize to mint an ID token, which shows the account chooser a
-      // SECOND time and then fails with an "unexpected error". Do not pass it.
-      // Likewise, never pass `redirectUri` together with `callback`.
-      //
-      // The callback is passed as a STRING naming a globally-registered window
-      // function (registered above), which is the most compatible form for the
-      // native bridge.
+      // - Do NOT pass `clientId`. The Google client IDs (iOS/Android) are configured
+      //   in the Median App Studio dashboard. Passing one here makes the native SDK
+      //   re-authorize for a server token, producing a SECOND account chooser and a
+      //   final "unexpected error".
+      // - Do NOT pass `redirectUri` together with `callback` (mixing modes also
+      //   double-prompts).
+      // - Pass the function itself, not a string name. The string form is not part
+      //   of the documented API and can prevent the native bridge from delivering
+      //   the result, leaving the native layer to re-prompt.
       median.socialLogin.google.login({
-        callback: "handleMedianGoogleCallback",
+        callback: handleMedianGoogleCallback,
       });
       
       console.log("[Median] Login initiated, waiting for native callback...");
