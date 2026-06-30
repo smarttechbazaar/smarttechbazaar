@@ -93,7 +93,20 @@ const getCachedProductData = (slug: string) => {
 
 async function getProductData(slug: string) {
   try {
-    return await getCachedProductData(slug);
+    const cached = await getCachedProductData(slug);
+
+    // IMPORTANT: unstable_cache caches whatever the function returns, including a
+    // `null` "not found" result, for the full revalidate window. If a product URL
+    // was ever requested before the product existed (a prefetch, a crawler, or a
+    // draft that was later activated), that negative result would stick and the
+    // page would keep returning 404 even after the product is live. To avoid that,
+    // never trust a cached `null`: re-verify directly against the database before
+    // serving a 404. A real, freshly-created product will be found here.
+    if (cached?.product) {
+      return cached;
+    }
+
+    return await getProductFromDb(slug);
   } catch (error) {
     console.error(`[v0] Error fetching product for slug ${slug}:`, error);
     // On error, try direct DB fetch without cache
