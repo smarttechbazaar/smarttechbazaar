@@ -146,7 +146,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const sellerLines = doc.splitTextToSize(sellerAddress, 75);
     doc.text(sellerLines, 20, yStart + 22);
     
-    doc.text(`Phone: ${settings?.storePhone || "+91 9353919299"}`, 20, yStart + 35);
+    doc.text(`Phone: ${settings?.storePhone || "+91 6363677588"}`, 20, yStart + 35);
     doc.text(`GSTIN: ${settings?.businessGstin || "29AABCU9603R1ZM"}`, 20, yStart + 41);
 
     // Buyer box

@@ -57,7 +57,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       seller: {
         name: settings?.storeName || "Sabka Tech Bazar",
         email: settings?.storeEmail || "sales@sabkatechbazar.com",
-        phone: settings?.storePhone || "+91 9353919299",
+        phone: settings?.storePhone || "+91 6363677588",
         address: settings?.storeAddress || "2nd Floor, No. 94/1, Behind Sharda Theater, SP Road, Bangalore - 560002",
         gstin: settings?.businessGstin || "29AABCU9603R1ZM",
         state: "Karnataka",

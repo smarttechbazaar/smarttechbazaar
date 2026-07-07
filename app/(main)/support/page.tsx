@@ -56,8 +56,8 @@ const contactMethods = [
     icon: Phone,
     title: "Call Us",
     description: "Speak directly with our support team, Monday to Saturday, 9 AM – 7 PM.",
-    action: "+91 93539 19299",
-    href: "tel:+919353919299",
+    action: "+91 63636 77588",
+    href: "tel:+916363677588",
     primary: false,
   },
 ];
