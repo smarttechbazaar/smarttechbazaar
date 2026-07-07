@@ -134,7 +134,7 @@ SP Road, Bangalore - 560002
 Karnataka, India
 
 Email: sales@smarttechbazaar.com
-Phone: +91 93539 19299
+Phone: +91 63636 77588
 Business Hours: Monday to Saturday, 9:00 AM – 7:00 PM IST`,
   },
 ];
@@ -249,11 +249,11 @@ export default function TermsPage() {
                     sales@smarttechbazaar.com
                   </a>
                   <a
-                    href="tel:+919353919299"
+                    href="tel:+916363677588"
                     className="flex h-9 items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 text-xs font-medium text-white hover:bg-white/20"
                   >
                     <Phone className="h-3.5 w-3.5" />
-                    +91 93539 19299
+                    +91 63636 77588
                   </a>
                 </div>
               </div>

@@ -280,7 +280,7 @@ export default function ShippingPage() {
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <a
-                href="tel:+919353919299"
+                href="tel:+916363677588"
                 className="flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-medium text-white hover:bg-stb-red-dark"
               >
                 <Phone className="h-4 w-4" />
