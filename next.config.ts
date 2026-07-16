@@ -66,8 +66,8 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // HTML pages should revalidate frequently for mobile apps
-        source: "/((?!_next|api).*)",
+        // Private/authenticated areas must never be cached by the CDN or browser.
+        source: "/(dashboard|admin|cart|checkout|order-success)/:path*",
         headers: [
           {
             key: "X-App-Version",
@@ -75,7 +75,27 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Cache-Control",
-            value: "no-cache, must-revalidate",
+            value: "private, no-store, must-revalidate",
+          },
+        ],
+      },
+      {
+        // Public pages: allow the Vercel CDN to serve cached HTML instead of
+        // hitting the origin on every request. This is the single biggest
+        // reducer of Fast Origin Transfer. The browser always revalidates
+        // (max-age=0) but the shared CDN can serve a cached copy for a while
+        // and refresh it in the background (stale-while-revalidate).
+        // Content changes made in the admin still appear immediately because
+        // mutations call revalidateTag().
+        source: "/((?!_next|api|dashboard|admin|cart|checkout|order-success).*)",
+        headers: [
+          {
+            key: "X-App-Version",
+            value: appVersion,
+          },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
           },
         ],
       },
